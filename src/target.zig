@@ -1,4 +1,6 @@
 const LLVMtype = @import("types.zig");
+const std = @import("std");
+const builtin = @import("builtin");
 
 pub extern fn LLVMInitializeAArch64TargetInfo() void;
 pub extern fn LLVMInitializeAMDGPUTargetInfo() void;
@@ -228,23 +230,33 @@ pub fn LLVMInitializeAllDisassemblers() callconv(.C) void {
     LLVMInitializeXCoreDisassembler();
     LLVMInitializeVEDisassembler();
 }
-pub fn LLVMInitializeNativeTarget() callconv(.C) LLVMtype.LLVMBool {
+
+inline fn initX86() void {
     LLVMInitializeX86TargetInfo();
     LLVMInitializeX86Target();
     LLVMInitializeX86TargetMC();
-    return 0;
-}
-pub fn LLVMInitializeNativeAsmParser() callconv(.C) LLVMtype.LLVMBool {
     LLVMInitializeX86AsmParser();
-    return 0;
-}
-pub fn LLVMInitializeNativeAsmPrinter() callconv(.C) LLVMtype.LLVMBool {
     LLVMInitializeX86AsmPrinter();
-    return 0;
-}
-pub fn LLVMInitializeNativeDisassembler() callconv(.C) LLVMtype.LLVMBool {
     LLVMInitializeX86Disassembler();
-    return 0;
+}
+
+inline fn initAArch64() void {
+    LLVMInitializeAArch64TargetInfo();
+    LLVMInitializeAArch64Target();
+    LLVMInitializeAArch64TargetMC();
+    LLVMInitializeAArch64AsmParser();
+    LLVMInitializeAArch64AsmPrinter();
+    LLVMInitializeAArch64Disassembler();
+}
+
+pub fn initNativeTarget() callconv(.C) void {
+    switch (builtin.target.cpu.arch) {
+        .x86_64 => initX86(),
+        .aarch64 => initAArch64(),
+        else => {
+            std.debug.warn("Unsupported architecture (modify llvm/target.zig): {}\n", .{builtin.target.cpu.arch});
+        },
+    }
 }
 
 pub extern fn LLVMGetModuleDataLayout(M: LLVMtype.LLVMModuleRef) LLVMtype.LLVMTargetDataRef;
